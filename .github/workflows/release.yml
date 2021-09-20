@@ -4,6 +4,15 @@ on:
   push:
     branches:
       - master
+  repository_dispatch:
+  workflow_dispatch:
+    inputs:
+      ssh:
+        description: 'SSH connection to Actions'
+        required: false
+        default: 'false'
+  schedule:
+    - cron: 0 0 ? * FRI
 
 jobs:
   Windows:
@@ -29,108 +38,77 @@ jobs:
           key: ${{ runner.os }}-build-caches-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-build-
+      - name: Install npm-check-updates
+        run: npm install -g npm-check-updates
+
+      - name: Update package.json
+        run: ncu -u
 
       - name: Install Dependencies
-        run: npm install
+        run: npm install --force
 
       - name: Build src code
         run: npm run build:src
 
-      - name: Release package
-        run: |
-          npm run publish:win:setup:x64:always
-          npm run publish:win:setup:x86
-          npm run publish:win:setup:arm64
-          npm run publish:win:setup:x86_64
-          npm run publish:win:7z:x64
-          npm run publish:win:7z:x86
-          npm run publish:win:7z:arm64
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BT_TOKEN: ${{ secrets.BT_TOKEN }}
+      - name: Build Package Setup x64
+        run: npm run pack:win:setup:x64
 
-  Mac:
-    name: Mac
-    runs-on: macos-latest
-    steps:
-      - name: Check out git repository
-        uses: actions/checkout@v2
-
-      - name: Install Node.js
-        uses: actions/setup-node@v2
+      - name: Upload Artifact Setup x64
+        uses: actions/upload-artifact@v2
         with:
-          node-version: '14.x'
+          name: lx-music-desktop-x64-Setup
+          path: build/* x64 Setup.exe
 
-      - name: Cache file
-        uses: actions/cache@v2
+      - name: Build Package Setup x86
+        run: npm run pack:win:setup:x86
+
+      - name: Upload Artifact Setup x86
+        uses: actions/upload-artifact@v2
         with:
-          path: |
-            node_modules
-            $HOME/.cache/electron
-            $HOME/.cache/electron-builder
-            $HOME/.npm/_prebuilds
-          key: ${{ runner.os }}-build-caches-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-build-
+          name: lx-music-desktop-x86-Setup
+          path: build/* x86 Setup.exe
 
-      - name: Install Dependencies
-        run: npm install
+      - name: Build Package Setup arm64
+        run: npm run pack:win:setup:arm64
 
-      - name: Build src code
-        run: npm run build:src
-
-      - name: Release package
-        run: |
-          npm run publish:mac:dmg:always
-          npm run publish:mac:dmg:arm64
-        env:
-          ELECTRON_CACHE: $HOME/.cache/electron
-          ELECTRON_BUILDERCACHE: $HOME/.cache/electron-builder
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BT_TOKEN: ${{ secrets.BT_TOKEN }}
-
-  Linux:
-    name: Linux
-    runs-on: ubuntu-latest
-    steps:
-      - name: Install package
-        run: sudo apt-get install -y rpm libarchive-tools
-
-      - name: Check out git repository
-        uses: actions/checkout@v2
-
-      - name: Install Node.js
-        uses: actions/setup-node@v2
+      - name: Upload Artifact Setup arm64
+        uses: actions/upload-artifact@v2
         with:
-          node-version: '14.x'
+          name: lx-music-desktop-arm64-Setup
+          path: build/* arm64 Setup.exe
 
-      - name: Cache file
-        uses: actions/cache@v2
+      - name: Build Package Setup x86_64
+        run: npm run pack:win:setup:x86_64
+
+      - name: Upload Artifact Setup x86_64
+        uses: actions/upload-artifact@v2
         with:
-          path: |
-            node_modules
-            $HOME/.cache/electron
-            $HOME/.cache/electron-builder
-            $HOME/.npm/_prebuilds
-          key: ${{ runner.os }}-build-caches-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-build-
+          name: lx-music-desktop-x86_64-Setup
+          path: build/*x86_64 Setup.exe
 
-      - name: Install Dependencies
-        run: npm install
+      - name: Build Package 7z x64
+        run: npm run pack:win:7z:x64
 
-      - name: Build src code
-        run: npm run build:src
+      - name: Upload Artifact 7z x64
+        uses: actions/upload-artifact@v2
+        with:
+          name: lx-music-desktop-win_x64-green
+          path: build/*win_x64 green.7z
 
-      - name: Release package
-        run: |
-          npm run publish:linux:deb:x64:always
-          npm run publish:linux:deb:x86
-          npm run publish:linux:deb:arm64
-          npm run publish:linux:deb:armv7l
-          npm run publish:linux:appImage
-          npm run publish:linux:rpm
-          npm run publish:linux:pacman
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BT_TOKEN: ${{ secrets.BT_TOKEN }}
+      - name: Build Package 7z x86
+        run: npm run pack:win:7z:x86
+
+      - name: Upload Artifact 7z x86
+        uses: actions/upload-artifact@v2
+        with:
+          name: lx-music-desktop-win_x86-green
+          path: build/*win_x86 green.7z
+
+      - name: Build Package 7z arm64
+        run: npm run pack:win:7z:arm64
+
+      - name: Upload Artifact 7z arm64
+        uses: actions/upload-artifact@v2
+        with:
+          name: lx-music-desktop-win_arm64-green
+          path: build/*win_arm64 green.7z
